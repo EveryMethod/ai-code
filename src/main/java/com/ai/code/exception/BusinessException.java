@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * @author alh
  * @description 自定义业务异常
- * @date 2023/04/07 11:09
+ * @date 2026/04/27 11:09
  */
 @Getter
 public class BusinessException extends RuntimeException {
