@@ -3,6 +3,7 @@ import { message } from 'ant-design-vue'
 
 // 创建 Axios 实例
 const myAxios = axios.create({
+  // controller 代码中已包含 /api 前缀，这里只保留网关地址，避免 /api/api 重复
   baseURL: 'http://localhost:8123/api',
   timeout: 60000,
   withCredentials: true,
