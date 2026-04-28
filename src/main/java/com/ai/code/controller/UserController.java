@@ -36,7 +36,7 @@ import java.util.List;
  * @since 2026-04-28 11:31:09
  */
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {

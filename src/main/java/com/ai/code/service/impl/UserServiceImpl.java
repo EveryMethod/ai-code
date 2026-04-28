@@ -130,18 +130,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     }
 
     @Override
-    public QueryWrapper getQueryWrapper(UserQueryRequest request) {
-        if (request == null) {
+    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
         return QueryWrapper.create()
-                .eq(UserQueryRequest::getId, request.getId())
-                .eq(UserQueryRequest::getUserRole, request.getUserRole())
-                .like(UserQueryRequest::getUserAccount, request.getUserAccount())
-                .like(UserQueryRequest::getUserName, request.getUserName())
-                .like(UserQueryRequest::getUserProfile, request.getUserProfile())
-                .orderBy(UserQueryRequest::getSortField, "ascend".equals(request.getSortOrder()));
+                .eq(User::getId, userQueryRequest.getId())
+                .eq(User::getUserRole, userQueryRequest.getUserRole())
+                .like(User::getUserAccount, userQueryRequest.getUserAccount())
+                .like(User::getUserName, userQueryRequest.getUserName())
+                .like(User::getUserProfile, userQueryRequest.getUserProfile())
+                .orderBy(sortField, "ascend".equals(sortOrder));
     }
+
 
 
 }
