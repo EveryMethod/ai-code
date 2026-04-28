@@ -3,8 +3,12 @@ package com.ai.code.controller;
 import com.ai.code.commom.BaseResponse;
 import com.ai.code.commom.ResultUtils;
 import com.ai.code.exception.ErrorCode;
+import com.ai.code.exception.ThrowUtils;
+import com.ai.code.model.dto.UserLoginRequestDTO;
 import com.ai.code.model.dto.UserRegisterRequestDTO;
+import com.ai.code.model.vo.LoginUserVO;
 import com.mybatisflex.core.paginate.Page;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,12 +106,33 @@ public class UserController {
 
     @PostMapping("register")
     public BaseResponse<?> userRegister(@RequestBody @Valid UserRegisterRequestDTO userRegisterRequestDTO) {
-        log.info("com.ai.code.controller.UserController.userRegister userRegisterRequestDTO:{}", userRegisterRequestDTO);
-        return ResultUtils.success(userService.userRegister(
-                userRegisterRequestDTO.getUserAccount(),
-                userRegisterRequestDTO.getUserPassword(),
-                userRegisterRequestDTO.getCheckPassword()
-        ));
+        try {
+            log.info("com.ai.code.controller.UserController.userRegister userRegisterRequestDTO:{}", userRegisterRequestDTO);
+            return ResultUtils.success(userService.userRegister(
+                    userRegisterRequestDTO.getUserAccount(),
+                    userRegisterRequestDTO.getUserPassword(),
+                    userRegisterRequestDTO.getCheckPassword()
+            ));
+        } catch (Exception e) {
+            log.error("com.ai.code.controller.UserController.userRegister exception:", e);
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public BaseResponse<?> userLogin(@RequestBody @Valid UserLoginRequestDTO userLoginRequestDTO, HttpServletRequest request) {
+        try {
+            log.info("com.ai.code.controller.UserController.userLogin userLoginRequestDTO:{}", userLoginRequestDTO);
+            ThrowUtils.throwIf(userLoginRequestDTO == null, ErrorCode.PARAMS_ERROR);
+            return ResultUtils.success(userService.userLogin(
+                    userLoginRequestDTO.getUserAccount(),
+                    userLoginRequestDTO.getUserPassword(),
+                    request
+            ));
+        } catch (Exception e) {
+            log.error("com.ai.code.controller.UserController.userLogin exception:", e);
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        }
     }
 
 }

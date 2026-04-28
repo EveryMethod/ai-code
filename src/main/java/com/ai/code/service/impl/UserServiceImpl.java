@@ -1,13 +1,17 @@
 package com.ai.code.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.ai.code.constant.UserConstant;
 import com.ai.code.exception.BusinessException;
 import com.ai.code.exception.ErrorCode;
 import com.ai.code.model.enums.UserRoleEnum;
+import com.ai.code.model.vo.LoginUserVO;
 import com.ai.code.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.ai.code.model.entity.User;
 import com.ai.code.mapper.UserMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -52,4 +56,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return DigestUtils.md5DigestAsHex((salt + userPassword).getBytes());
     }
 
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        return BeanUtil.copyProperties(user, LoginUserVO.class);
+    }
+
+    @Override
+    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+        // 加密
+        String encryptPassword = getEncryptPassword(userPassword);
+        // 查询用户是否存在
+        User user = userMapper.selectOneByQuery(new QueryWrapper()
+                .eq(User::getUserAccount, userAccount)
+                .eq(User::getUserPassword, encryptPassword));
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号或密码错误");
+        }
+        // 记录用户的登录状态
+        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        // 返回脱敏用户信息
+        return this.getLoginUserVO(user);
+    }
 }
