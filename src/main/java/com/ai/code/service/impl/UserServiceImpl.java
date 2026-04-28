@@ -13,8 +13,11 @@ import com.ai.code.model.entity.User;
 import com.ai.code.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+
+import java.util.Objects;
 
 /**
  * 用户 服务层实现。
@@ -79,5 +82,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
         // 返回脱敏用户信息
         return this.getLoginUserVO(user);
+    }
+
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (Objects.isNull(user) || Objects.isNull(user.getId())) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        return user;
+    }
+
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        Object user = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
+        }
+        // 移除登录状态
+        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        return true;
     }
 }

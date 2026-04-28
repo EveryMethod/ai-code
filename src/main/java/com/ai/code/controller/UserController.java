@@ -104,6 +104,12 @@ public class UserController {
         return userService.page(page);
     }
 
+    /**
+     * 用户注册
+     *
+     * @param userRegisterRequestDTO 注册参数
+     * @return 注册结果
+     */
     @PostMapping("register")
     public BaseResponse<?> userRegister(@RequestBody @Valid UserRegisterRequestDTO userRegisterRequestDTO) {
         try {
@@ -119,6 +125,13 @@ public class UserController {
         }
     }
 
+    /**
+     * 用户登录
+     *
+     * @param userLoginRequestDTO 登录参数
+     * @param request           请求
+     * @return 登录结果
+     */
     @PostMapping("/login")
     public BaseResponse<?> userLogin(@RequestBody @Valid UserLoginRequestDTO userLoginRequestDTO, HttpServletRequest request) {
         try {
@@ -134,5 +147,29 @@ public class UserController {
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
         }
     }
+
+    /**
+     * 获取当前登录用户
+     *
+     * @param request 请求
+     * @return 登录结果
+     */
+    @GetMapping("/get/login")
+    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
+        return ResultUtils.success(userService.getLoginUserVO(userService.getLoginUser(request)));
+    }
+
+    /**
+     * 用户注销
+     *
+     * @param request 请求
+     * @return 注销结果
+     */
+    @PostMapping("/logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(userService.userLogout(request));
+    }
+
 
 }
