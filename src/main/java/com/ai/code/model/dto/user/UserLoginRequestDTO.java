@@ -1,4 +1,4 @@
-package com.ai.code.model.dto;
+package com.ai.code.model.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

@@ -1,4 +1,4 @@
-package com.ai.code.model.dto;
+package com.ai.code.model.dto.user;
 
 import com.ai.code.annotation.FieldMatch;
 import jakarta.validation.constraints.*;

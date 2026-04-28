@@ -1,11 +1,14 @@
 package com.ai.code.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.ai.code.constant.UserConstant;
 import com.ai.code.exception.BusinessException;
 import com.ai.code.exception.ErrorCode;
+import com.ai.code.model.dto.user.UserQueryRequest;
 import com.ai.code.model.enums.UserRoleEnum;
 import com.ai.code.model.vo.LoginUserVO;
+import com.ai.code.model.vo.UserVO;
 import com.ai.code.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -13,11 +16,13 @@ import com.ai.code.model.entity.User;
 import com.ai.code.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 用户 服务层实现。
@@ -53,6 +58,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return user.getId();
     }
 
+    @Override
     public String getEncryptPassword(String userPassword) {
         // 盐值，混淆密码
         final String salt = "info";
@@ -104,4 +110,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
         return true;
     }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtil.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryWrapper getQueryWrapper(UserQueryRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        return QueryWrapper.create()
+                .eq(UserQueryRequest::getId, request.getId())
+                .eq(UserQueryRequest::getUserRole, request.getUserRole())
+                .like(UserQueryRequest::getUserAccount, request.getUserAccount())
+                .like(UserQueryRequest::getUserName, request.getUserName())
+                .like(UserQueryRequest::getUserProfile, request.getUserProfile())
+                .orderBy(UserQueryRequest::getSortField, "ascend".equals(request.getSortOrder()));
+    }
+
+
 }
