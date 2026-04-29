@@ -25,4 +25,23 @@ knife4j:
 logging:
   level:
     root: INFO
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: sk-f1615fead6d7420eb7161e91fdb237c9
+      base-url: https://api.deepseek.com
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+      strict-json-schema: true
+      response-format: json_object
+    streaming-chat-model:
+      api-key: sk-f1615fead6d7420eb7161e91fdb237c9
+      base-url: https://api.deepseek.com
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+
+
+
 
