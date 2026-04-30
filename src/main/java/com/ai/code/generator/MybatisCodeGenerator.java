@@ -19,7 +19,7 @@ public class MybatisCodeGenerator {
     /**
      * 需要生成的表名数组。
      */
-    private static final String[] TABLE_NAMES = {"user"};
+    private static final String[] TABLE_NAMES = {"app"};
 
     /**
      * 代码生成器入口方法。

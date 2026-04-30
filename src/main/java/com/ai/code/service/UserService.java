@@ -1,12 +1,18 @@
 package com.ai.code.service;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.ai.code.model.dto.user.UserQueryRequest;
+import com.ai.code.model.entity.App;
+import com.ai.code.model.vo.AppVO;
 import com.ai.code.model.vo.LoginUserVO;
 import com.ai.code.model.vo.UserVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.ai.code.model.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -16,6 +22,7 @@ import java.util.List;
  * @author alh
  * @since 2026-04-28 11:31:09
  */
+@Service
 public interface UserService extends IService<User> {
 
     /**

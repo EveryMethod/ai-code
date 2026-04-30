@@ -1,5 +1,7 @@
 package com.ai.code.commom;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import lombok.Data;
 
 /**
@@ -18,6 +20,7 @@ public class PageRequest {
     /**
      * 页面大小
      */
+//    @Max(value = 20, message = "页面大小不能超过20")
     private int pageSize = 10;
 
     /**

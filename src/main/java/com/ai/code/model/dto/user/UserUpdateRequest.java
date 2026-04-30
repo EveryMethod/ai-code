@@ -1,5 +1,6 @@
 package com.ai.code.model.dto.user;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.io.Serial;
@@ -16,6 +17,7 @@ public class UserUpdateRequest implements Serializable {
     /**
      * id
      */
+    @NotNull(message = "id不能为空")
     private Long id;
 
     /**

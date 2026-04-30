@@ -1,5 +1,6 @@
 package com.ai.code.commom;
 
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.io.Serial;
@@ -16,6 +17,7 @@ public class DeleteRequest implements Serializable {
     /**
      * id
      */
+    @Min(value = 0, message = "id不能小于0")
     private Long id;
 
     @Serial
