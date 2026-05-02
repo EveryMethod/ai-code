@@ -3,6 +3,7 @@ package com.ai.code.core.saver;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import com.ai.code.constant.AppConstant;
 import com.ai.code.exception.BusinessException;
 import com.ai.code.exception.ErrorCode;
 import com.ai.code.model.enums.CodeGenTypeEnum;
@@ -11,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * @author alh
@@ -22,7 +24,7 @@ public abstract class BaseCodeFileSaverTemplate<T> {
     /**
      * 代码保存根路径
      */
-    public static final String FILE_SAVE_ROOT_PATH = System.getProperty("user.dir") + "/tmp/code_output";
+    public static final String FILE_SAVE_ROOT_PATH = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
     /**
      * 保存代码标准实现 模版方法
@@ -30,11 +32,11 @@ public abstract class BaseCodeFileSaverTemplate<T> {
      * @param result 代码生成结果
      * @return 保存的文件目录对象
      */
-    public final File saveCode(@NotNull T result) {
+    public final File saveCode(@NotNull T result, Long appId) {
         // 验证输入
         validInput(result);
         // 构建唯一路径
-        String baseDirPath = buildUniqueDir();
+        String baseDirPath = buildUniqueDir(appId);
         // 保存文件，具体实现交给子类
         saveFile(result, baseDirPath);
         // 返回文件目录对象
@@ -66,9 +68,12 @@ public abstract class BaseCodeFileSaverTemplate<T> {
      *
      * @return 唯一目录
      */
-    protected String buildUniqueDir() {
+    protected String buildUniqueDir(Long appId) {
+        if (Objects.isNull(appId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        }
         String bizType = getCodeType().getValue();
-        String uniqueDirName = StrUtil.format("{}_{}", bizType, IdUtil.getSnowflakeNextIdStr());
+        String uniqueDirName = StrUtil.format("{}_{}", bizType, appId);
         String dirPath = FILE_SAVE_ROOT_PATH + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;

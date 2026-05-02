@@ -25,13 +25,13 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void generatorAndSaveCode() {
-        File file = aiCodeGeneratorFacade.generatorAndSaveCode("生成一个用户登录代码，不超过100行", CodeGenTypeEnum.MULTI_FILE);
+        File file = aiCodeGeneratorFacade.generatorAndSaveCode("生成一个用户登录代码，不超过100行", CodeGenTypeEnum.MULTI_FILE, 1L);
         assertNotNull(file);
     }
 
     @Test
     void generatorAndSaveCodeStream() {
-        Flux<String> flux = aiCodeGeneratorFacade.generatorAndSaveCodeStream("生成一个用户登录代码，不超过100行", CodeGenTypeEnum.MULTI_FILE);
+        Flux<String> flux = aiCodeGeneratorFacade.generatorAndSaveCodeStream("生成一个用户登录代码，不超过100行", CodeGenTypeEnum.MULTI_FILE, 1L);
         List<String> result = flux.collectList().block();
         assertNotNull(result);
         System.out.println(String.join("", result));

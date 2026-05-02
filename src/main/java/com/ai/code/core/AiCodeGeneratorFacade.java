@@ -32,15 +32,15 @@ public class AiCodeGeneratorFacade {
      * @param typeEnum 代码生成类型
      * @return 生成的代码文件
      */
-    public File generatorAndSaveCode(String userMessage, @NotNull CodeGenTypeEnum typeEnum) {
+    public File generatorAndSaveCode(String userMessage, CodeGenTypeEnum typeEnum, Long appId) {
         return switch (typeEnum)  {
             case HTML -> {
                 HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(result, typeEnum);
+                yield CodeFileSaverExecutor.executeSaver(result, typeEnum, appId);
             }
             case MULTI_FILE -> {
                 MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(result, typeEnum);
+                yield CodeFileSaverExecutor.executeSaver(result, typeEnum, appId);
             }
             default -> throw new IllegalArgumentException("Invalid type enum: " + typeEnum);
         };
@@ -52,15 +52,15 @@ public class AiCodeGeneratorFacade {
      * @param typeEnum 代码生成类型
      * @return 生成的代码文件
      */
-    public Flux<String> generatorAndSaveCodeStream(String userMessage, @NotNull CodeGenTypeEnum typeEnum) {
+    public Flux<String> generatorAndSaveCodeStream(String userMessage, CodeGenTypeEnum typeEnum, Long appId) {
         return switch (typeEnum)  {
             case HTML -> {
                 Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield  processCodeStream(result, typeEnum);
+                yield  processCodeStream(result, typeEnum, appId);
             }
             case MULTI_FILE -> {
                 Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(result, typeEnum);
+                yield processCodeStream(result, typeEnum, appId);
             }
             default -> throw new IllegalArgumentException("Invalid type enum: " + typeEnum);
         };
@@ -73,7 +73,7 @@ public class AiCodeGeneratorFacade {
      * @param typeEnum 代码生成类型
      * @return 生成的代码文件
      */
-    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum typeEnum) {
+    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum typeEnum, Long appId) {
         StringBuilder codeBuilder = new StringBuilder();
         return codeStream
                 .doOnNext(codeBuilder::append)
@@ -81,7 +81,7 @@ public class AiCodeGeneratorFacade {
                     try {
                         String completeCode = codeBuilder.toString();
                         Object parseRes = CodeParseExecutor.executeParse(completeCode, typeEnum);
-                        File file = CodeFileSaverExecutor.executeSaver(parseRes, typeEnum);
+                        File file = CodeFileSaverExecutor.executeSaver(parseRes, typeEnum, appId);
                         log.info("File saved: {}", file.getAbsolutePath());
                     } catch (Exception e) {
                         log.error("Error saving file: {}", e.getMessage());
