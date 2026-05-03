@@ -12,10 +12,13 @@ import com.ai.code.exception.BusinessException;
 import com.ai.code.exception.ErrorCode;
 import com.ai.code.exception.ThrowUtils;
 import com.ai.code.model.dto.app.AppQueryRequest;
+import com.ai.code.model.entity.ChatHistory;
 import com.ai.code.model.entity.User;
+import com.ai.code.model.enums.ChatHistoryMessageTypeEnum;
 import com.ai.code.model.enums.CodeGenTypeEnum;
 import com.ai.code.model.vo.AppVO;
 import com.ai.code.model.vo.UserVO;
+import com.ai.code.service.ChatHistoryService;
 import com.ai.code.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -25,10 +28,12 @@ import com.ai.code.service.AppService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,14 +50,17 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
+public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     private final UserService userService;
 
     private final AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    private final ChatHistoryService chatHistoryService;
+
     /**
      * 根据应用获取应用信息
+     *
      * @param app 应用
      * @return 应用信息
      */
@@ -111,15 +119,30 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String prompt, User loginUser) {
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 id 不能为空");
-        ThrowUtils.throwIf(prompt == null || prompt.isEmpty(), ErrorCode.PARAMS_ERROR, "提示词不能为空");
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         // 权限校验
-        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限访问");
+        Long userId = loginUser.getId();
+        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR, "无权限访问");
         CodeGenTypeEnum enumByValue = CodeGenTypeEnum.getEnumByValue(app.getCodeGenType());
         ThrowUtils.throwIf(enumByValue == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
-        return aiCodeGeneratorFacade.generatorAndSaveCodeStream(prompt, enumByValue, appId);
+        // 保存用户输入的提示词
+        chatHistoryService.saveChatHistory(appId, userId, prompt, ChatHistoryMessageTypeEnum.USER.getValue());
+        Flux<String> flux = aiCodeGeneratorFacade.generatorAndSaveCodeStream(prompt, enumByValue, appId);
+        // 将ai生成的内容保存到数据库
+        StringBuilder aiMessage = new StringBuilder();
+        return flux.map(chunk -> {
+            aiMessage.append(chunk);
+            return chunk;
+        }).doOnComplete(() -> {
+                    // 保存ai响应的消息内容
+                    chatHistoryService.saveChatHistory(appId, userId, aiMessage.toString(), ChatHistoryMessageTypeEnum.AI.getValue());
+                }
+        ).doOnError(error -> {
+            // ai回复失败
+            String errorMessage = "ai回复失败：" + error.getMessage();
+            chatHistoryService.saveChatHistory(appId, userId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue());
+        });
     }
 
     @Override
@@ -147,7 +170,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + app.getDeployKey();
         try {
-            FileUtil.copyContent(sourceFile, new File(deployDirPath),true);
+            FileUtil.copyContent(sourceFile, new File(deployDirPath), true);
         } catch (IORuntimeException e) {
             log.error("部署目录复制文件失败", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署目录复制文件失败" + e.getMessage());
@@ -159,6 +182,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
                 .deployedTime(LocalDateTime.now())
                 .build());
         ThrowUtils.throwIf(!updateRes, ErrorCode.SYSTEM_ERROR, "部署信息更新失败");
-        return String.format("%s/%s",AppConstant.CODE_DEPLOY_HOST, app.getDeployKey());
+        return String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, app.getDeployKey());
+    }
+
+    @Override
+    public boolean removeById(@NonNull Serializable id) {
+        long appId = Long.parseLong(String.valueOf(id));
+        if (appId < 0) {
+            return false;
+        }
+        // 先删除应用相关的聊天历史
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            log.error("删除{}应用相关的聊天历史失败", appId, e);
+        }
+        // 删除应用
+        return super.removeById(id);
     }
 }
