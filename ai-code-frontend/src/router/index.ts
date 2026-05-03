@@ -3,31 +3,52 @@ import HomeView from '../pages/HomeView.vue'
 import UserLoginPage from '../pages/user/UserLoginPage.vue'
 import UserRegisterPage from '../pages/user/UserRegisterPage.vue'
 import UserManagePage from '../pages/admin/UserManagePage.vue'
+import AppManagePage from '../pages/admin/AppManagePage.vue'
+import AppChatPage from '../pages/app/AppChatPage.vue'
+import AppEditPage from '../pages/app/AppEditPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-routes: [
-  {
-    path: '/',
-    name: '主页',
-    component: HomeView,
-  },
-  {
-    path: '/user/login',
-    name: '用户登录',
-    component: UserLoginPage,
-  },
-  {
-    path: '/user/register',
-    name: '用户注册',
-    component: UserRegisterPage,
-  },
-  {
-    path: '/admin/userManage',
-    name: '用户管理',
-    component: UserManagePage,
-  },
-],
+  routes: [
+    {
+      path: '/',
+      name: '主页',
+      component: HomeView,
+      meta: { fullBleed: true },
+    },
+    {
+      path: '/user/login',
+      name: '用户登录',
+      component: UserLoginPage,
+    },
+    {
+      path: '/user/register',
+      name: '用户注册',
+      component: UserRegisterPage,
+    },
+    {
+      path: '/admin/userManage',
+      name: '用户管理',
+      component: UserManagePage,
+    },
+    {
+      path: '/admin/appManage',
+      name: '应用管理',
+      component: AppManagePage,
+    },
+    {
+      path: '/app/chat/:id',
+      name: '应用对话',
+      component: AppChatPage,
+      meta: { fullBleed: true, requiresAuth: true },
+    },
+    {
+      path: '/app/edit/:id',
+      name: '应用编辑',
+      component: AppEditPage,
+      meta: { requiresAuth: true },
+    },
+  ],
 })
 
 export default router

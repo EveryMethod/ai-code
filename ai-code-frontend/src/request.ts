@@ -1,10 +1,13 @@
 import axios from 'axios'
 import { message } from 'ant-design-vue'
 
+/** 与后端网关一致，供 axios、SSE fetch 等复用 */
+export const API_BASE_URL = 'http://localhost:8123/api'
+
 // 创建 Axios 实例
 const myAxios = axios.create({
   // controller 代码中已包含 /api 前缀，这里只保留网关地址，避免 /api/api 重复
-  baseURL: 'http://localhost:8123/api',
+  baseURL: API_BASE_URL,
   timeout: 60000,
   withCredentials: true,
 })

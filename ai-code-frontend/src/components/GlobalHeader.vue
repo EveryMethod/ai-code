@@ -11,7 +11,7 @@
         </RouterLink>
       </a-col>
       <!-- 中间：导航菜单 -->
-      <a-col flex="auto">
+      <a-col flex="auto" class="nav-col">
         <a-menu
           v-model:selectedKeys="selectedKeys"
           mode="horizontal"
@@ -20,13 +20,16 @@
         />
       </a-col>
       <!-- 右侧：用户操作区域 -->
-      <a-col>
+      <a-col class="user-col">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
-              <a-space>
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                {{ loginUserStore.loginUser.userName ?? '无名' }}
+              <a-space class="user-trigger">
+                <a-avatar :size="32" :src="loginUserStore.loginUser.userAvatar">
+                  {{ loginUserStore.loginUser.userName?.charAt(0) || 'U' }}
+                </a-avatar>
+                <span class="user-name">{{ loginUserStore.loginUser.userName ?? '无名' }}</span>
+                <DownOutlined class="arrow-icon" />
               </a-space>
               <template #overlay>
                 <a-menu>
@@ -39,9 +42,8 @@
             </a-dropdown>
           </div>
           <div v-else>
-            <a-button type="primary" href="/user/login">登录</a-button>
+            <a-button type="primary" href="/user/login" size="small">登录</a-button>
           </div>
-          <!-- <a-button type="primary">登录</a-button> -->
         </div>
       </a-col>
     </a-row>
@@ -56,7 +58,7 @@ import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 const loginUserStore = useLoginUserStore()
-import { LogoutOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, DownOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 // 当前选中菜单
@@ -66,7 +68,6 @@ router.afterEach((to) => {
   selectedKeys.value = [to.path]
 })
 
-// 菜单配置项
 // 菜单配置项
 const originItems = [
   {
@@ -78,6 +79,11 @@ const originItems = [
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
+  },
+  {
+    key: '/admin/appManage',
+    label: '应用管理',
+    title: '应用管理',
   },
   {
     key: 'others',
@@ -132,26 +138,74 @@ const doLogout = async () => {
 .header {
   background: #fff;
   padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .logo {
-  height: 48px;
-  width: 48px;
+  height: 40px;
+  width: 40px;
 }
 
 .site-title {
   margin: 0;
-  font-size: 18px;
-  color: #1890ff;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.nav-col {
+  overflow: hidden;
+}
+
+.user-col {
+  flex-shrink: 0;
+}
+
+.user-trigger {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-trigger:hover {
+  background: #f1f5f9;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.arrow-icon {
+  font-size: 10px;
+  color: #94a3b8;
 }
 
 .ant-menu-horizontal {
   border-bottom: none !important;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+  }
+  .site-title {
+    display: none;
+  }
+  .user-name {
+    display: none;
+  }
 }
 </style>

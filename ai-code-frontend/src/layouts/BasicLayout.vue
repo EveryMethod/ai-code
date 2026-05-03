@@ -4,7 +4,7 @@
     <GlobalHeader />
 
     <!-- 主要内容区域 -->
-    <a-layout-content class="main-content">
+    <a-layout-content :class="['main-content', { 'main-content--bleed': isBleed }]">
       <router-view />
     </a-layout-content>
 
@@ -14,19 +14,29 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import GlobalHeader from '@/components/GlobalHeader.vue'
 import GlobalFooter from '@/components/GlobalFooter.vue'
+
+const route = useRoute()
+const isBleed = computed(() => Boolean(route.meta.fullBleed))
 </script>
 
 <style scoped>
 .basic-layout {
-  background: none;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 .main-content {
-  /* max-width: 1200px; */
+  min-height: calc(100vh - 64px - 60px);
   padding: 24px;
-  background: white;
-  margin: 16px auto 56px;
+  background: #f8fafc;
+  margin: 0 auto;
+}
+
+.main-content--bleed {
+  padding: 0;
 }
 </style>

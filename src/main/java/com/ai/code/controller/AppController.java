@@ -169,7 +169,7 @@ public class AppController {
      * @return 应用详情
      */
     @GetMapping("/get/vo")
-    public BaseResponse<AppVO> getAppVoById(@RequestParam @Min(message = "id 不能小于等于 0", value = 1) Long id) {
+    public BaseResponse<AppVO> getAppVoById(@RequestParam @Min(message = "id 不能小于等于 0", value = 0) Long id) {
         // 查询数据库
         App app = appService.getById(id);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
