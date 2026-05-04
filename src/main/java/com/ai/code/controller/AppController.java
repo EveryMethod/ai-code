@@ -185,8 +185,7 @@ public class AppController {
      * @return 应用列表
      */
     @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<AppVO>> listMyAppVoByPage(@RequestBody @Valid @NotNull AppQueryRequest appQueryRequest, HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+    public BaseResponse<Page<AppVO>> listMyAppVoByPage(@RequestBody @Valid @NotNull AppQueryRequest appQueryRequest, HttpServletRequest request) {        User loginUser = userService.getLoginUser(request);
         // 限制每页最多 20 个
         long pageSize = appQueryRequest.getPageSize();
         ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多 20 个应用");

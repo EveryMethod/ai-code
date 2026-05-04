@@ -1,6 +1,7 @@
 package com.ai.code.model.dto.chatMemory;
 
 import com.ai.code.commom.PageRequest;
+import com.mybatisflex.annotation.Column;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -30,22 +31,26 @@ public class ChatHistoryQueryRequest extends PageRequest implements Serializable
     /**
      * 消息类型（user/ai）
      */
+    @Column("message_type")
     private String messageType;
 
     /**
      * 应用id
      */
+    @Column("app_id")
     private Long appId;
 
     /**
      * 创建用户id
      */
+    @Column("user_id")
     private Long userId;
 
     /**
      * 游标查询 - 最后一条记录的创建时间
      * 用于分页查询，获取早于此时间的记录
      */
+    @Column("last_create_time")
     private LocalDateTime lastCreateTime;
 
     @Serial

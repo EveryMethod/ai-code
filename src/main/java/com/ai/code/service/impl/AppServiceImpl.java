@@ -94,7 +94,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .eq(App::getDeployKey, appQueryRequest.getDeployKey())
                 .eq(App::getPriority, appQueryRequest.getPriority())
                 .eq(App::getUserId, appQueryRequest.getUserId())
-                .orderBy(sortField, "ascend".equals(sortOrder));
+                .orderBy(sortField, "asc".equals(sortOrder));
     }
 
     @Override

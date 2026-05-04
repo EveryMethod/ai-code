@@ -18,8 +18,12 @@ const guard = async (
   let loginUser = loginUserStore.loginUser
   // 确保页面刷新，首次加载时，能够等后端返回用户信息后再校验权限
   if (firstFetchLoginUser) {
-    await loginUserStore.fetchLoginUser()
-    loginUser = loginUserStore.loginUser
+    try {
+      await loginUserStore.fetchLoginUser()
+      loginUser = loginUserStore.loginUser
+    } catch {
+      // 后端不可达，使用默认未登录状态继续
+    }
     firstFetchLoginUser = false
   }
   const toUrl = to.fullPath

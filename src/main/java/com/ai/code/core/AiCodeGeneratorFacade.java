@@ -1,6 +1,7 @@
 package com.ai.code.core;
 
 import com.ai.code.ai.AiCodeGeneratorService;
+import com.ai.code.ai.AiCodeGeneratorServiceFactory;
 import com.ai.code.ai.model.HtmlCodeResult;
 import com.ai.code.ai.model.MultiFileCodeResult;
 import com.ai.code.core.parse.CodeParseExecutor;
@@ -24,7 +25,7 @@ import java.io.File;
 @Slf4j
 public class AiCodeGeneratorFacade {
 
-    private final AiCodeGeneratorService aiCodeGeneratorService;
+    private final AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     /**
      * 根据用户消息生成代码并保存
@@ -33,6 +34,8 @@ public class AiCodeGeneratorFacade {
      * @return 生成的代码文件
      */
     public File generatorAndSaveCode(String userMessage, CodeGenTypeEnum typeEnum, Long appId) {
+        // 通过appId获取对应的AiCodeGeneratorService
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (typeEnum)  {
             case HTML -> {
                 HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
@@ -53,6 +56,8 @@ public class AiCodeGeneratorFacade {
      * @return 生成的代码文件
      */
     public Flux<String> generatorAndSaveCodeStream(String userMessage, CodeGenTypeEnum typeEnum, Long appId) {
+        // 通过appId获取对应的AiCodeGeneratorService
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (typeEnum)  {
             case HTML -> {
                 Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);

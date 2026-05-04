@@ -2,7 +2,9 @@ package com.ai.code.ai;
 
 import com.ai.code.ai.model.HtmlCodeResult;
 import com.ai.code.ai.model.MultiFileCodeResult;
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 /**

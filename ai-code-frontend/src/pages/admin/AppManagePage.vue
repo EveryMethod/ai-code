@@ -168,7 +168,7 @@ const total = ref(0)
 const searchParams = reactive<API.AppQueryRequest>({
   pageNum: 1,
   pageSize: 10,
-  sortField: 'createTime',
+  sortField: 'create_time',
   sortOrder: 'desc',
 })
 

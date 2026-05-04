@@ -2,14 +2,8 @@
   <div class="home">
     <section class="home-hero">
       <div class="hero-inner">
-        <h1 class="hero-title">
-          一句话
-          <span class="hero-logo-wrap">
-            <img class="hero-logo" src="@/assets/logo.png" alt="" />
-          </span>
-          呈所想
-        </h1>
-        <p class="hero-sub">与 AI 对话轻松创建应用和网站</p>
+        <h1 class="hero-title">AI 应用生成平台</h1>
+        <p class="hero-sub">一句话轻松创建网站应用</p>
 
         <div class="prompt-card">
           <a-textarea
@@ -17,21 +11,11 @@
             :rows="3"
             :maxlength="2000"
             class="prompt-input"
-            placeholder="使用 NoCode 创建一个高效的小工具，帮我计算……"
+            placeholder="帮我创建个人博客网站"
             :bordered="false"
             @pressEnter="quickCreate"
           />
           <div class="prompt-toolbar">
-            <div class="prompt-toolbar-left">
-              <a-button type="text" class="tool-btn" @click="onUploadClick">
-                <template #icon><PaperClipOutlined /></template>
-                上传
-              </a-button>
-              <a-button type="text" class="tool-btn" @click="onOptimizeClick">
-                <template #icon><ThunderboltOutlined /></template>
-                优化
-              </a-button>
-            </div>
             <a-button
               type="primary"
               shape="circle"
@@ -76,7 +60,7 @@
                 :key="item.id"
                 class="app-card"
                 hoverable
-                @click="goChat(item.id!)"
+                @click="goChat(String(item.id!), item)"
               >
                 <template #cover>
                   <div class="thumb-wrap">
@@ -101,18 +85,27 @@
                         type="primary"
                         size="large"
                         class="overlay-btn overlay-btn--chat"
-                        @click.stop="goChat(item.id!)"
+                        @click.stop="goChat(String(item.id!), item)"
                       >
                         查看对话
                       </a-button>
                     </div>
                   </div>
                 </template>
-                <a-card-meta :title="item.appName || '未命名应用'">
-                  <template #description>
-                    <span class="card-time">{{ relativeCreated(item.createTime) }}</span>
-                  </template>
-                </a-card-meta>
+                <!-- 应用信息区域：左右结构 -->
+                <div class="app-info-row">
+                  <!-- 左侧：用户头像 -->
+                  <div class="app-info-left">
+                    <a-avatar :size="40" :src="item.user?.userAvatar" shape="circle" />
+                  </div>
+                  <!-- 右侧：上下结构 -->
+                  <div class="app-info-right">
+                    <!-- 上方：应用标题 -->
+                    <div class="app-title">{{ item.appName || '未命名应用' }}</div>
+                    <!-- 下方：用户昵称 -->
+                    <div class="app-creator">{{ item.user?.userName ?? '用户' }}</div>
+                  </div>
+                </div>
               </a-card>
             </div>
             <div v-else-if="!myLoading" class="empty-block">
@@ -131,8 +124,7 @@
               v-model:current="mySearch.pageNum"
               v-model:page-size="mySearch.pageSize"
               :total="myTotal"
-              :page-size-options="['10', '20']"
-              show-size-changer
+              :page-size-options="['6']"
               :show-total="formatPageTotal"
               @change="onMyPageChange"
             />
@@ -159,7 +151,7 @@
               :key="item.id"
               class="app-card"
               hoverable
-              @click="goChat(item.id!)"
+              @click="goChat(String(item.id!), item)"
             >
               <template #cover>
                 <div class="thumb-wrap">
@@ -179,28 +171,27 @@
                       type="primary"
                       size="large"
                       class="overlay-btn overlay-btn--chat"
-                      @click.stop="goChat(item.id!)"
+                      @click.stop="goChat(String(item.id!), item)"
                     >
                       查看对话
                     </a-button>
                   </div>
                 </div>
               </template>
-              <a-card-meta :title="item.appName || '未命名应用'">
-                <template #description>
-                  <div class="featured-meta">
-                    <span class="badges">
-                      <a-tag v-if="(item.priority ?? 0) >= 99" color="purple">精选</a-tag>
-                      <a-tag v-if="item.codeGenType" color="blue">{{ item.codeGenType }}</a-tag>
-                      <a-tag color="orange">应用</a-tag>
-                    </span>
-                    <div class="creator">
-                      <a-avatar :size="24" :src="item.user?.userAvatar" />
-                      <span class="creator-name">{{ item.user?.userName ?? '用户' }}</span>
-                    </div>
-                  </div>
-                </template>
-              </a-card-meta>
+              <!-- 应用信息区域：左右结构 -->
+              <div class="app-info-row">
+                <!-- 左侧：用户头像 -->
+                <div class="app-info-left">
+                  <a-avatar :size="40" :src="item.user?.userAvatar" shape="circle" />
+                </div>
+                <!-- 右侧：上下结构 -->
+                <div class="app-info-right">
+                  <!-- 上方：应用标题 -->
+                  <div class="app-title">{{ item.appName || '未命名应用' }}</div>
+                  <!-- 下方：用户昵称 -->
+                  <div class="app-creator">{{ item.user?.userName ?? '用户' }}</div>
+                </div>
+              </div>
             </a-card>
           </div>
           <div v-else-if="!goodLoading" class="empty-block">
@@ -219,8 +210,7 @@
             v-model:current="goodSearch.pageNum"
             v-model:page-size="goodSearch.pageSize"
             :total="goodTotal"
-            :page-size-options="['10', '20']"
-            show-size-changer
+            :page-size-options="['12', '24']"
             :show-total="formatPageTotal"
             @change="onGoodPageChange"
           />
@@ -240,7 +230,7 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { PaperClipOutlined, ThunderboltOutlined, ArrowUpOutlined } from '@ant-design/icons-vue'
+import { ArrowUpOutlined } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { addApp, listGoodAppVoByPage, listMyAppVoByPage } from '@/api/appController.ts'
 
@@ -260,12 +250,19 @@ const goodTotal = ref(0)
 
 const placeholderCover = 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png'
 
-const suggestTags = ['波普风电商页面', '企业网站', '电商运营后台', '暗黑话题社区']
+const suggestTags = [
+  '帮我创建一个响应式电商网站首页，包含商品轮播图、分类导航栏、热销商品展示区域、购物车图标和页脚信息栏，风格简约现代',
+  '帮我创建个人技术博客网站，包含文章列表页和文章详情页，支持代码高亮显示、标签分类、文章搜索功能和关于我页面',
+  '帮我创建一个企业官网展示网站，包含首页Banner大图、公司介绍、服务项目展示、成功案例轮播、团队介绍和在线联系表单',
+  '帮我创建一个在线任务管理看板应用，包含待办/进行中/已完成三列看板、任务增删改查、优先级标签、截止日期和搜索筛选功能',
+]
 
 const mySearch = reactive<API.AppQueryRequest>({
   pageNum: 1,
-  pageSize: 12,
+  pageSize: 6, // 2行×3个
   appName: undefined,
+  sortField: 'create_time',
+  sortOrder: 'desc',
 })
 
 const goodSearch = reactive<API.AppQueryRequest>({
@@ -277,28 +274,6 @@ const goodSearch = reactive<API.AppQueryRequest>({
 function clampPageSize(body: API.AppQueryRequest) {
   const size = Math.min(body.pageSize ?? 20, 20)
   body.pageSize = size
-}
-
-function relativeCreated(iso?: string) {
-  if (!iso) return ''
-  const t = new Date(iso).getTime()
-  if (Number.isNaN(t)) return ''
-  const diff = Date.now() - t
-  const m = Math.floor(diff / 60000)
-  if (m < 60) return `创建于 ${Math.max(1, m)} 分钟前`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `创建于 ${h} 小时前`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `创建于 ${d} 天前`
-  return `创建于 ${new Date(iso).toLocaleDateString()}`
-}
-
-function onUploadClick() {
-  message.info('上传能力敬请期待')
-}
-
-function onOptimizeClick() {
-  message.info('提示词优化敬请期待')
 }
 
 function quickCreate(e: KeyboardEvent) {
@@ -410,13 +385,23 @@ function onGoodPageChange(page: number, pageSize: number) {
   fetchGoodApps()
 }
 
-function goChat(id: string) {
+function goChat(id: string, item?: API.AppVO) {
   if (!loginUserStore.loginUser?.id) {
     message.warning('请先登录后查看应用')
     router.push('/user/login')
     return
   }
-  router.push(`/app/chat/${id}`)
+
+  // 判断是否是自己的作品
+  const isOwner = item?.userId === loginUserStore.loginUser.id
+  const isAdmin = loginUserStore.loginUser.userRole === 'admin'
+
+  // 如果不是自己的作品且不是管理员，添加 view=1 参数
+  if (!isOwner && !isAdmin) {
+    router.push({ path: `/app/chat/${id}`, query: { view: '1' } })
+  } else {
+    router.push(`/app/chat/${id}`)
+  }
 }
 
 function openDeployedApp(deployKey: string) {
@@ -447,7 +432,10 @@ onMounted(() => {
 
 <style scoped>
 .home {
-  min-height: calc(100vh - 64px - 80px);
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-family:
     system-ui,
     -apple-system,
@@ -456,72 +444,82 @@ onMounted(() => {
     'PingFang SC',
     'Microsoft YaHei',
     sans-serif;
+  overflow-y: auto; /* 允许垂直滚动 */
+  overflow-x: hidden; /* 隐藏横向滚动 */
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.home::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.home {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
 .home-hero {
-  padding: 64px 24px 48px;
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 30%, #80deea 60%, #4dd0e1 100%);
+  flex: 1;
+  padding: 80px 24px 60px;
+  /* 科技感深色渐变背景 */
+  background: linear-gradient(
+    135deg,
+    #0a0e1a 0%,
+    #0f1830 25%,
+    #151b45 50%,
+    #0c1f30 75%,
+    #080d1a 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-inner {
-  max-width: 880px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
   text-align: center;
 }
 
 .hero-title {
   margin: 0 0 16px;
-  font-size: clamp(32px, 5vw, 48px);
+  font-size: clamp(36px, 5.5vw, 56px);
   font-weight: 800;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  letter-spacing: -0.5px;
-}
-
-.hero-logo-wrap {
-  display: inline-flex;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #22c55e;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
-  transition: transform 0.3s ease;
-}
-
-.hero-logo-wrap:hover {
-  transform: scale(1.05);
-}
-
-.hero-logo {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-sub {
   margin: 0 0 36px;
-  color: #64748b;
-  font-size: 17px;
-  font-weight: 400;
+  color: #8b9bb5;
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 1px;
 }
 
 .prompt-card {
-  background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.1);
-  padding: 20px 20px 16px;
+  /* 毛玻璃效果卡片 */
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 18px 20px 12px;
   text-align: left;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.3s ease;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .prompt-card:hover {
-  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.08);
 }
 
 .prompt-input {
@@ -530,45 +528,34 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+.prompt-input :deep(textarea) {
+  color: #e2e8f0 !important;
+  background: transparent !important;
+}
+
+.prompt-input :deep(textarea::placeholder) {
+  color: #64748b !important;
+}
+
 .prompt-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.prompt-toolbar-left {
-  display: flex;
-  gap: 4px;
-}
-
-.tool-btn {
-  color: #64748b;
-  font-size: 14px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.tool-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .send-btn {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #334155, #1e293b) !important;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #38bdf8, #818cf8) !important;
   border: none !important;
-  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
   transition: all 0.3s ease;
 }
 
 .send-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(51, 65, 85, 0.4);
+  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.5);
 }
 
 .send-btn:active {
@@ -585,13 +572,29 @@ onMounted(() => {
 
 .tag-btn {
   border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+  font-size: 13px;
+  padding: 6px 18px;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.tag-btn:hover {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #38bdf8 !important;
 }
 
 .home-panel {
-  padding: 48px 24px 16px;
-  background: linear-gradient(180deg, #b2ebf2 0%, #e0f2fe 20%, #f8fafc 50%);
+  padding: 0 0 16px;
+  background: linear-gradient(180deg, #080d1a 0%, #0f1830 40%, #0a0e1a 100%);
 }
 
 .home-panel--last {
@@ -599,24 +602,43 @@ onMounted(() => {
 }
 
 .panel-inner {
-  max-width: 1280px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  background: #fff;
-  border-radius: 28px;
-  padding: 36px 32px 28px;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 28px 28px 0 0;
+  padding: 36px 48px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .section-title {
   margin: 0 0 24px;
   font-size: 26px;
   font-weight: 700;
-  color: #0f172a;
+  color: #e2e8f0;
   letter-spacing: -0.3px;
 }
 
 .search-row {
   margin-bottom: 16px;
+}
+
+.search-row :deep(.ant-form-item-label > label) {
+  color: #94a3b8;
+}
+
+.search-row :deep(.ant-input) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.search-row :deep(.ant-input:hover),
+.search-row :deep(.ant-input:focus) {
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .card-grid {
@@ -652,18 +674,20 @@ onMounted(() => {
     transform 0.3s ease,
     box-shadow 0.3s ease;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .app-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(56, 189, 248, 0.25);
 }
 
 .thumb-wrap {
   position: relative;
   height: 200px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #0f1830 0%, #151b45 100%);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -733,10 +757,46 @@ onMounted(() => {
   object-fit: cover;
 }
 
-.card-time {
-  color: #94a3b8;
-  font-size: 13px;
-  font-weight: 500;
+/* 应用信息区域：左右结构 */
+.app-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+/* 左侧：用户头像 */
+.app-info-left {
+  flex-shrink: 0;
+}
+
+/* 右侧：上下结构 */
+.app-info-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* 下方：用户昵称 */
+.app-creator {
+  font-size: 14px;
+  color: #7c8aa0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .empty-block {
@@ -747,33 +807,109 @@ onMounted(() => {
   padding: 16px 0;
 }
 
-.featured-meta {
+.pager {
+  margin-top: 32px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  justify-content: center;
+  align-items: center;
 }
 
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.creator {
+/* 分页组件样式优化 */
+.pager :deep(.ant-pagination) {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.creator-name {
-  color: #64748b;
-  font-size: 13px;
+.pager :deep(.ant-pagination-item) {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.3s ease;
 }
 
-.pager {
-  margin-top: 28px;
-  display: flex;
-  justify-content: flex-end;
+.pager :deep(.ant-pagination-item a) {
+  color: #94a3b8;
+}
+
+.pager :deep(.ant-pagination-item:hover) {
+  border-color: #38bdf8;
+}
+
+.pager :deep(.ant-pagination-item:hover a) {
+  color: #38bdf8;
+}
+
+.pager :deep(.ant-pagination-item-active) {
+  border-color: #38bdf8;
+  background: #38bdf8;
+}
+
+.pager :deep(.ant-pagination-item-active a) {
+  color: #fff;
+  font-weight: 600;
+}
+
+.pager :deep(.ant-pagination-prev),
+.pager :deep(.ant-pagination-next) {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.3s ease;
+}
+
+.pager :deep(.ant-pagination-prev .ant-pagination-item-link),
+.pager :deep(.ant-pagination-next .ant-pagination-item-link) {
+  color: #94a3b8;
+}
+
+.pager :deep(.ant-pagination-prev:hover),
+.pager :deep(.ant-pagination-next:hover) {
+  border-color: #38bdf8;
+}
+
+.pager :deep(.ant-pagination-prev:hover .ant-pagination-item-link),
+.pager :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  color: #38bdf8;
+}
+
+.pager :deep(.ant-pagination-prev .ant-pagination-item-link),
+.pager :deep(.ant-pagination-next .ant-pagination-item-link) {
+  border-radius: 8px;
+}
+
+.pager :deep(.ant-pagination-options) {
+  margin-left: 16px;
+}
+
+.pager :deep(.ant-pagination-options-quick-jumper) {
+  margin-left: 8px;
+}
+
+.pager :deep(.ant-pagination-options-quick-jumper input) {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.pager :deep(.ant-pagination-options-quick-jumper input:hover),
+.pager :deep(.ant-pagination-options-quick-jumper input:focus) {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+}
+
+.pager :deep(.ant-pagination-total-text) {
+  color: #4a5568;
+  font-size: 14px;
+  margin-right: 16px;
+}
+
+.pager :deep(.ant-select-selector) {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
 }
 
 .need-login {
@@ -781,13 +917,15 @@ onMounted(() => {
 }
 
 .home-footer-note {
-  text-align: right;
-  padding: 0 24px 16px;
+  text-align: center;
+  padding: 16px 24px;
   font-size: 13px;
-  color: #94a3b8;
+  color: #4a5568;
+  background: #080d1a;
+  flex-shrink: 0;
 }
 
 .home-footer-note a {
-  color: #94a3b8;
+  color: #4a5568;
 }
 </style>

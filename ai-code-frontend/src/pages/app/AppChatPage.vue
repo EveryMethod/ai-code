@@ -62,8 +62,13 @@
 
     <div class="chat-body">
       <div class="chat-col chat-col--left">
-        <!-- Welcome screen when no messages -->
-        <div v-if="messages.length === 0 && !streaming" class="chat-welcome">
+        <!-- History loading -->
+        <div v-if="historyLoading" class="history-loading">
+          <a-spin tip="加载对话历史…" />
+        </div>
+
+        <!-- Welcome screen when no messages and history loaded -->
+        <div v-else-if="messages.length === 0 && !streaming" class="chat-welcome">
           <div class="welcome-icon">
             <img src="@/assets/logo.png" alt="" />
           </div>
@@ -83,6 +88,12 @@
 
         <!-- Messages area -->
         <div v-else ref="scrollRef" class="messages" @click="onMsgClick">
+          <!-- Load more history -->
+          <div v-if="hasMoreHistory" class="load-more-row">
+            <a-button size="small" :loading="loadingMore" @click="loadMoreHistory">
+              加载更多历史消息
+            </a-button>
+          </div>
           <div
             v-for="(m, idx) in messages"
             :key="idx"
@@ -109,25 +120,31 @@
 
         <!-- Composer -->
         <div class="composer">
-          <a-textarea
-            ref="textareaRef"
-            v-model:value="draft"
-            :rows="2"
-            :disabled="streaming"
-            placeholder="请描述你想生成的网站,越详细效果越好哦"
-            @pressEnter="onEnterPress"
-          />
-          <a-button
-            v-if="!streaming"
-            type="primary"
-            shape="circle"
-            class="send-btn"
-            :disabled="!draft.trim()"
-            @click="sendManual"
-          >
-            <template #icon><SendOutlined /></template>
-          </a-button>
-          <a-button v-else danger size="small" @click="stopStream">
+          <a-tooltip :title="canOperate ? '' : '无法在别人的作品下对话哦~'" placement="top">
+            <a-textarea
+              ref="textareaRef"
+              v-model:value="draft"
+              :rows="2"
+              :disabled="streaming || !canOperate"
+              :placeholder="
+                canOperate ? '请描述你想生成的网站，越详细效果越好哦' : '无法在别人的作品下对话哦~'
+              "
+              @pressEnter="onEnterPress"
+            />
+          </a-tooltip>
+          <a-tooltip :title="canOperate ? '' : '无法在别人的作品下对话哦~'" placement="top">
+            <a-button
+              v-if="!streaming"
+              type="primary"
+              shape="circle"
+              class="send-btn"
+              :disabled="!draft.trim() || !canOperate"
+              @click="sendManual"
+            >
+              <template #icon><SendOutlined /></template>
+            </a-button>
+          </a-tooltip>
+          <a-button v-if="streaming" danger size="small" @click="stopStream">
             <template #icon><PauseCircleOutlined /></template>
             停止生成
           </a-button>
@@ -190,6 +207,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons-vue'
 import { deployApp, getAppVoById, deleteApp } from '@/api/appController.ts'
+import { listAppChatHistory } from '@/api/chatHistoryController.ts'
 import { streamChatGenCode, staticPreviewUrl } from '@/utils/chatSse.ts'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -217,6 +235,13 @@ const textareaRef = ref<InstanceType<typeof HTMLTextAreaElement> | null>(null)
 const deploying = ref(false)
 const editMode = ref(false)
 const detailVisible = ref(false)
+
+// 历史消息
+const historyLoading = ref(false)
+const loadingMore = ref(false)
+const hasMoreHistory = ref(false)
+const historyTotal = ref(0)
+const lastCreateTime = ref<string | undefined>(undefined)
 
 const welcomeHints = [
   '创建一个电商首页',
@@ -420,6 +445,87 @@ async function loadApp() {
   await router.push('/')
 }
 
+/** 加载最近一页对话历史（游标查询，按创建时间升序展示） */
+async function loadHistory() {
+  historyLoading.value = true
+  try {
+    const res = await listAppChatHistory({
+      appId: appId.value as unknown as number,
+      pageSize: 10,
+    })
+    if (res.data.code === 0 && res.data.data) {
+      const records = res.data.data.records ?? []
+      historyTotal.value = res.data.data.totalRow ?? 0
+      // 按创建时间升序排列
+      const sorted = [...records].sort(
+        (a, b) => dayjs(a.createTime).valueOf() - dayjs(b.createTime).valueOf(),
+      )
+      // 转换为 ChatMessage 格式
+      const historyMsgs: ChatMessage[] = sorted.map((r) => ({
+        role: (r.messageType === 'user' ? 'user' : 'assistant') as Role,
+        content: r.message || '',
+        time: r.createTime ? dayjs(r.createTime).format('HH:mm') : '',
+      }))
+      messages.value = historyMsgs
+      // 判断是否有更多历史
+      hasMoreHistory.value = historyTotal.value > records.length
+      // 记录最早一条的 createTime 作为游标
+      if (sorted.length > 0) {
+        lastCreateTime.value = sorted[0].createTime
+      }
+      // 若有 >= 2 条记录则展示网站预览
+      if (historyTotal.value >= 2) {
+        previewUrl.value = staticPreviewUrl(app.value, appId.value)
+      }
+    } else {
+      messages.value = []
+      hasMoreHistory.value = false
+    }
+  } catch {
+    message.error('加载对话历史失败')
+    messages.value = []
+    hasMoreHistory.value = false
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+/** 加载更早一页历史消息 */
+async function loadMoreHistory() {
+  if (!lastCreateTime.value) return
+  loadingMore.value = true
+  try {
+    const res = await listAppChatHistory({
+      appId: appId.value as unknown as number,
+      pageSize: 10,
+      lastCreateTime: lastCreateTime.value,
+    })
+    if (res.data.code === 0 && res.data.data) {
+      const records = res.data.data.records ?? []
+      // 按创建时间升序排列
+      const sorted = [...records].sort(
+        (a, b) => dayjs(a.createTime).valueOf() - dayjs(b.createTime).valueOf(),
+      )
+      const moreMsgs: ChatMessage[] = sorted.map((r) => ({
+        role: (r.messageType === 'user' ? 'user' : 'assistant') as Role,
+        content: r.message || '',
+        time: r.createTime ? dayjs(r.createTime).format('HH:mm') : '',
+      }))
+      // 前置插入更早的消息
+      messages.value = [...moreMsgs, ...messages.value]
+      // 更新游标与更多标记
+      if (sorted.length > 0) {
+        lastCreateTime.value = sorted[0].createTime
+      }
+      hasMoreHistory.value = historyTotal.value > messages.value.length
+    }
+  } catch {
+    message.error('加载更多历史消息失败')
+  } finally {
+    loadingMore.value = false
+  }
+}
+
 async function runStream(userText: string) {
   streaming.value = true
   previewUrl.value = ''
@@ -487,7 +593,20 @@ async function sendManual() {
 }
 
 async function maybeAutoStart() {
+  // 没有权限操作，不自动发送消息
+  if (!canOperate.value) {
+    return
+  }
+
+  // 没有 auto=1 参数，不自动发送
   if (route.query.auto !== '1') return
+
+  // 有历史消息，不自动发送
+  if (historyTotal.value > 0) {
+    await router.replace({ path: route.path, query: {} })
+    return
+  }
+
   const prompt = app.value?.initPrompt?.trim()
   if (!prompt) {
     await router.replace({ path: route.path })
@@ -518,6 +637,7 @@ async function onDeploy() {
 
 onMounted(async () => {
   await loadApp()
+  await loadHistory()
   await maybeAutoStart()
 })
 
@@ -547,7 +667,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 8px 16px;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
   z-index: 10;
@@ -596,18 +716,20 @@ onUnmounted(() => {
 }
 
 .chat-col--left {
-  flex: 0 0 480px;
+  flex: 2;
   border-right: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
   background: #fff;
+  min-width: 0;
 }
 
 .chat-col--right {
-  flex: 1;
+  flex: 3;
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
+  min-width: 0;
 }
 
 /* Welcome screen */
@@ -617,36 +739,36 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 24px;
+  padding: 20px 16px;
   text-align: center;
 }
 
 .welcome-icon {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: linear-gradient(135deg, #e0f7fa, #4dd0e1);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   box-shadow: 0 8px 24px rgba(77, 208, 225, 0.3);
 }
 
 .welcome-icon img {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
 }
 
 .chat-welcome h3 {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
 }
 
 .chat-welcome p {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   color: #64748b;
   font-size: 14px;
   max-width: 320px;
@@ -667,8 +789,20 @@ onUnmounted(() => {
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 12px;
   scroll-behavior: smooth;
+}
+
+.load-more-row {
+  text-align: center;
+  padding: 0 0 16px;
+}
+
+.history-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .messages::-webkit-scrollbar {
@@ -681,7 +815,7 @@ onUnmounted(() => {
 }
 
 .msg-row {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .msg-row--user {
@@ -925,12 +1059,12 @@ onUnmounted(() => {
 /* Composer */
 .composer {
   border-top: 1px solid #e8e8e8;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: #fff;
   flex-shrink: 0;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .composer :deep(.ant-input) {
@@ -946,7 +1080,7 @@ onUnmounted(() => {
 
 /* Preview */
 .preview-head {
-  padding: 12px 20px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -2,10 +2,16 @@ spring:
   application:
     name: ai-code-backend
   datasource:
-    url: jdbc:mysql://localhost:3306/ai_code?serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&useSSL=false
-    username: 
-    password: 
+    url: jdbc:mysql://localhost:3306/ai_code?allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&useSSL=false
+    username: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 192.168.5.128
+      port: 6379
+      password: 698523An
+      ttl: 3600
 server:
   port: 8123
   servlet:
@@ -28,17 +34,17 @@ logging:
 langchain4j:
   open-ai:
     chat-model:
-      api-key: 
+      api-key:  sk-f1615fead6d7420eb7161e91fdb237c9
       base-url: https://api.deepseek.com
-      model-name: 
+      model-name: deepseek-v4-flash
       log-requests: true
       log-responses: true
       strict-json-schema: true
       response-format: json_object
     streaming-chat-model:
-      api-key: 
+      api-key:  sk-f1615fead6d7420eb7161e91fdb237c9
       base-url: https://api.deepseek.com
-      model-name: 
+      model-name: deepseek-v4-pro
       log-requests: true
       log-responses: true
 

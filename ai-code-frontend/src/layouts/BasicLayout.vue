@@ -8,8 +8,8 @@
       <router-view />
     </a-layout-content>
 
-    <!-- 底部版权信息 -->
-    <GlobalFooter />
+    <!-- 底部版权信息（主页不显示） -->
+    <GlobalFooter v-if="!isBleed" />
   </a-layout>
 </template>
 
@@ -36,7 +36,11 @@ const isBleed = computed(() => Boolean(route.meta.fullBleed))
   margin: 0 auto;
 }
 
+/* 全宽布局：去除内边距和背景色限制 */
 .main-content--bleed {
   padding: 0;
+  background: transparent;
+  min-height: auto;
+  height: auto;
 }
 </style>
