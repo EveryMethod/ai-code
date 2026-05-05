@@ -1,9 +1,14 @@
 package com.ai.code.ai;
 
+import com.ai.code.ai.tools.FileWriteTool;
+import com.ai.code.exception.BusinessException;
+import com.ai.code.exception.ErrorCode;
+import com.ai.code.model.enums.CodeGenTypeEnum;
 import com.ai.code.service.ChatHistoryService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -31,7 +36,10 @@ public class AiCodeGeneratorServiceFactory {
     private ChatModel chatModel;
 
     @Resource
-    private StreamingChatModel streamingChatModel;
+    private StreamingChatModel openAiStreamingChatModel;
+
+    @Resource
+    private StreamingChatModel reasoningStreamingChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -43,7 +51,7 @@ public class AiCodeGeneratorServiceFactory {
      * AI 服务实例缓存
      * 缓存大小为1000，写入后30分钟过期，访问后10分钟过期
      */
-    private final Cache<Long, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
+    private final Cache<String, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(Duration.ofMinutes(30))
             .expireAfterAccess(Duration.ofMinutes(10))
@@ -58,7 +66,7 @@ public class AiCodeGeneratorServiceFactory {
      * @param appId 应用程序ID
      * @return AiCodeGeneratorService
      */
-    private AiCodeGeneratorService createAiCodeGeneratorService(Long appId) {
+    private AiCodeGeneratorService createAiCodeGeneratorService(Long appId, CodeGenTypeEnum codeGenType) {
         log.info("为 appId:{} 创建 AI 服务实例", appId);
         MessageWindowChatMemory memory = MessageWindowChatMemory.builder()
                 .id(appId)
@@ -67,11 +75,25 @@ public class AiCodeGeneratorServiceFactory {
                 .build();
         // 加载会话历史
         chatHistoryService.loadChatHistoryToMemory(appId, memory, 20);
-        return AiServices.builder(AiCodeGeneratorService.class)
-                .chatModel(chatModel)
-                .streamingChatModel(streamingChatModel)
-                .chatMemory(memory)
-                .build();
+        return switch (codeGenType) {
+            // Vue项目使用推理模型
+            case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
+                    .streamingChatModel(reasoningStreamingChatModel)
+                    .chatMemoryProvider(memoryId -> memory)
+                    .tools(new FileWriteTool())
+                    // AI调用不存在的工具时，返回错误信息
+                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                            toolExecutionRequest,
+                            "Error :there is no tool called " + toolExecutionRequest.name()
+                    ))
+                    .build();
+            case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
+                    .chatModel(chatModel)
+                    .streamingChatModel(openAiStreamingChatModel)
+                    .chatMemory(memory)
+                    .build();
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型：" + codeGenType);
+        };
     }
 
     @Bean
@@ -86,6 +108,16 @@ public class AiCodeGeneratorServiceFactory {
      * @return AiCodeGeneratorService
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(Long appId) {
-        return serviceCache.get(appId, this::createAiCodeGeneratorService);
+        return getAiCodeGeneratorService(appId, CodeGenTypeEnum.HTML);
+    }
+
+    public AiCodeGeneratorService getAiCodeGeneratorService(Long appId, CodeGenTypeEnum codeGenType) {
+        String cacheKey = buildCacheKey(appId, codeGenType);
+        return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, codeGenType));
+    }
+
+
+    private String buildCacheKey(Long appId, CodeGenTypeEnum codeGenType) {
+        return appId + "_" + codeGenType.getValue();
     }
 }

@@ -8,6 +8,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.ai.code.constant.AppConstant;
 import com.ai.code.controller.AppController;
 import com.ai.code.core.AiCodeGeneratorFacade;
+import com.ai.code.core.builder.VueProjectBuilder;
+import com.ai.code.core.handle.StreamHandlerExecutor;
 import com.ai.code.exception.BusinessException;
 import com.ai.code.exception.ErrorCode;
 import com.ai.code.exception.ThrowUtils;
@@ -57,6 +59,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private final AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
     private final ChatHistoryService chatHistoryService;
+
+    private final StreamHandlerExecutor streamHandlerExecutor;
+
+    private final VueProjectBuilder vueProjectBuilder;
 
     /**
      * 根据应用获取应用信息
@@ -129,20 +135,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 保存用户输入的提示词
         chatHistoryService.saveChatHistory(appId, userId, prompt, ChatHistoryMessageTypeEnum.USER.getValue());
         Flux<String> flux = aiCodeGeneratorFacade.generatorAndSaveCodeStream(prompt, enumByValue, appId);
-        // 将ai生成的内容保存到数据库
-        StringBuilder aiMessage = new StringBuilder();
-        return flux.map(chunk -> {
-            aiMessage.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-                    // 保存ai响应的消息内容
-                    chatHistoryService.saveChatHistory(appId, userId, aiMessage.toString(), ChatHistoryMessageTypeEnum.AI.getValue());
-                }
-        ).doOnError(error -> {
-            // ai回复失败
-            String errorMessage = "ai回复失败：" + error.getMessage();
-            chatHistoryService.saveChatHistory(appId, userId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue());
-        });
+        return streamHandlerExecutor.doExecute(flux, chatHistoryService, appId, loginUser, enumByValue);
     }
 
     @Override
@@ -166,6 +159,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File sourceFile = new File(sourceDirPath);
         if (!sourceFile.exists() || !sourceFile.isDirectory()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署目录不存在，请检查配置");
+        }
+        CodeGenTypeEnum enumByValue = CodeGenTypeEnum.getEnumByValue(app.getCodeGenType());
+        if (enumByValue == CodeGenTypeEnum.VUE_PROJECT) {
+            // vue项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
+            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "部署目录构建失败");
+            // 检查dist目录是否存在
+            File distFile = new File(sourceDirPath, "dist");
+            ThrowUtils.throwIf(!distFile.exists(), ErrorCode.SYSTEM_ERROR, "部署目录构建成功，但是未生成dist目录");
+            // 将dist目录作为部署源
+            sourceFile = distFile;
+            log.info("vue项目构建成功，使用dist目录作为部署源{}", distFile);
         }
         // 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + app.getDeployKey();

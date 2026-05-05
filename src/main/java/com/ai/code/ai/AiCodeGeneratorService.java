@@ -4,6 +4,7 @@ import com.ai.code.ai.model.HtmlCodeResult;
 import com.ai.code.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -46,4 +47,13 @@ public interface AiCodeGeneratorService {
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
     Flux<String> generateMultiFileCodeStream(String userMessage);
+
+    /**
+     * 根据用户消息生成 Vue 项目代码流
+     * @param appId 应用程序ID
+     * @param userMessage 用户消息
+     * @return 生成的代码流
+     */
+    @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
+    TokenStream generateVueProjectCodeStream(@MemoryId Long appId, @UserMessage String userMessage);
 }

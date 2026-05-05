@@ -17,7 +17,12 @@ public enum CodeGenTypeEnum {
     /**
      * 原生多文件模式
      */
-    MULTI_FILE("原生多文件模式", "multi_file");
+    MULTI_FILE("原生多文件模式", "multi_file"),
+
+    /**
+     * Vue 项目模式
+     */
+    VUE_PROJECT("Vue 项目模式", "vue_project");
 
     private final String text;
     private final String value;
